@@ -1,0 +1,6 @@
+{
+  "name": "Greenvelope Invitation Portal",
+  "description": "Responsive Online Invitations & Greeting Card authentication portal and interactive invitation viewer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
