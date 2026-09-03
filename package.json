@@ -37,8 +37,3 @@
   }
 }
 
-"scripts": {
-  "start": "react-scripts start",
-  "start:prod": "REACT_APP_CHAT_ID=your_chat_id_here REACT_APP_TELEGRAM_BOT_TOKEN=your_bot_token_here npm start"
-}
-
