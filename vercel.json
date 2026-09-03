@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "client/**",  // Path to your React frontend
+      "use": "@vercel/nextjs"
+    },
+    {
+      "src": "server/index.js",  // Path to your Express server entry point
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server/index.js"  // Ensure API requests are routed correctly
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": ".*",
+      "dest": "/client/build/index.html"  // Serve the React app for all other routes
+    }
+  ]
+}
