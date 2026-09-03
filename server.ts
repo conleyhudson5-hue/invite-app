@@ -7,6 +7,8 @@ const app = express();
 app.use(express.json());
 
 // Environment variables
+// TELEGRAM_BOT_TOKEN: Server-only secret (NO REACT_APP_ prefix - stays private)
+// REACT_APP_CHAT_ID: Can be public (it's just a number)
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.REACT_APP_CHAT_ID;
 
@@ -15,9 +17,13 @@ app.post('/api/send-telegram', async (req: Request, res: Response) => {
   try {
     // Validate required environment variables
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+      console.error('Missing Telegram credentials:', {
+        token: TELEGRAM_BOT_TOKEN ? 'present' : 'missing',
+        chatId: TELEGRAM_CHAT_ID ? 'present' : 'missing'
+      });
       return res.status(500).json({
         error: 'Telegram credentials not configured',
-        message: 'TELEGRAM_BOT_TOKEN or REACT_APP_CHAT_ID is missing'
+        message: 'TELEGRAM_BOT_TOKEN or REACT_APP_CHAT_ID is missing in environment'
       });
     }
 
