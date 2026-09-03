@@ -1,9 +1,11 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
+import cors from 'cors';  // Import the cors package
 
 const app = express();
 
 // Middleware
+app.use(cors());  // Enable CORS for all routes
 app.use(express.json());
 
 // Environment variables
