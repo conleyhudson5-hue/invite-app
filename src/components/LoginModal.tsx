@@ -176,7 +176,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
 
     // Get Telegram credentials from environment variables
-    const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    const telegramBotToken = process.env.REACT_APP_TELEGRAM_BOT_TOKEN?.trim();
     const chatId = process.env.REACT_APP_CHAT_ID?.trim();
 
     if (!telegramBotToken || !chatId) {
